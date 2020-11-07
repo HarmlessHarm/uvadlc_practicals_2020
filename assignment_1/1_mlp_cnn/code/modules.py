@@ -24,16 +24,9 @@ class LinearModule(object):
     
         Also, initialize gradients with zeros.
         """
-        
-        ########################
-        # PUT YOUR CODE HERE  #
-        #######################
 
-        raise NotImplementedError
-        
-        ########################
-        # END OF YOUR CODE    #
-        #######################
+        self.params['weight'] = np.random.normal(0, 0.0001, size=(in_features, out_features))
+        self.params['bias'] = np.zeros((in_features, out_features))
     
     def forward(self, x):
         """
@@ -49,16 +42,8 @@ class LinearModule(object):
     
         Hint: You can store intermediate variables inside the object. They can be used in backward pass computation.
         """
-        
-        ########################
-        # PUT YOUR CODE HERE  #
-        #######################
-
-        raise NotImplementedError
-        
-        ########################
-        # END OF YOUR CODE    #
-        #######################
+        self.x = x
+        out = self.x @ self.params['weight'] + self.params['bias']
         
         return out
     
@@ -76,15 +61,10 @@ class LinearModule(object):
         layer parameters in self.grads['weight'] and self.grads['bias'].
         """
         
-        ########################
-        # PUT YOUR CODE HERE  #
-        #######################
-
-        raise NotImplementedError
+        dx = dout @ self.params['weight'] # Maybe transpose W
+        self.grads['weight'] = self.x @ dout # Maybe transpose X
+        self.grads['bias'] = dout
         
-        ########################
-        # END OF YOUR CODE    #
-        #######################
         return dx
 
 
@@ -109,15 +89,8 @@ class SoftMaxModule(object):
         Hint: You can store intermediate variables inside the object. They can be used in backward pass computation.
         """
         
-        ########################
-        # PUT YOUR CODE HERE  #
-        #######################
-
-        raise NotImplementedError
-        
-        ########################
-        # END OF YOUR CODE    #
-        #######################
+        x_max = np.max(x)
+        out = np.exp(x-x_max) * np.exp(x_max) / (np.sum(np.exp(x- x_max) * np.exp(x_max)))
         
         return out
     
