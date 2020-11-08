@@ -24,7 +24,11 @@ class LinearModule(object):
         self.params = dict()
         self.grads = dict()
         self.params['weight'] = np.random.normal(0, 0.0001, size=(in_features, out_features))
-        self.params['bias'] = np.zeros(out_features)
+        self.params['bias'] = np.zeros(out_features).reshape(1,-1)
+
+        # print('\nIN INIT\n')
+        # print(self.params['bias'].shape)
+        # print('\nEND INIT\n')
     
     def forward(self, x):
         """
@@ -38,7 +42,7 @@ class LinearModule(object):
         Hint: You can store intermediate variables inside the object. They can be used in backward pass computation.
         """
         self.x = x
-        out = self.x @ self.params['weight'] + self.params['bias'].T
+        out = self.x @ self.params['weight'] + self.params['bias']
         
         return out
     
@@ -52,10 +56,15 @@ class LinearModule(object):
           dx: gradients with respect to the input of the module
         """
 
-        dx = dout @ self.params['weight'].T # Maybe transpose W
+        dx = dout @ self.params['weight'].T
         
-        self.grads['weight'] = self.x.T @ dout # Maybe transpose X
-        self.grads['bias'] = dout
+        self.grads['weight'] = self.x.T @ dout
+        self.grads['bias'] = np.ones((1, dout.shape[0])) @ dout
+
+        # print('\nIN BACKWARD\n')
+        # print(self.params['bias'].shape)
+        # print(self.grads['bias'].shape)
+        # print('\nEND BACKWARD\n')
 
         return dx
 
@@ -75,8 +84,8 @@ class SoftMaxModule(object):
           out: output of the softmax
         """
         # Subtracting max of X from X to reduce the size of the exponents.
-        x_max = np.max(x)
-        out = np.exp(x-x_max) * np.exp(x_max) / (np.sum(np.exp(x- x_max) * np.exp(x_max), axis=1, keepdims=True))
+        x_max = np.max(x, axis=1, keepdims=True)
+        out = np.exp(x-x_max) / (np.sum(np.exp(x- x_max), axis=1, keepdims=True))
         return out
 
     def softmax_grad(self, sigmas):
