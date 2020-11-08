@@ -33,7 +33,7 @@ def accuracy(predictions, targets):
 
     Args:
       predictions: 2D float array of size [batch_size, n_classes]
-      labels: 2D int array of size [batch_size, n_classes]
+      targets: 2D int array of size [batch_size, n_classes]
               with one-hot encoding. Ground truth labels for
               each sample in the batch
     Returns:
@@ -75,13 +75,7 @@ def train():
     else:
         dnn_hidden_units = []
 
-    ########################
-    # PUT YOUR CODE HERE  #
-    #######################
-    raise NotImplementedError
-    ########################
-    # END OF YOUR CODE    #
-    #######################
+    # model = MLP(FLAGS.)
 
 
 def print_flags():
