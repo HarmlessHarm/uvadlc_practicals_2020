@@ -75,8 +75,29 @@ def train():
     else:
         dnn_hidden_units = []
 
-    # model = MLP(FLAGS.)
+    # Load data
+    cifar10 = cifar10_utils.get_cifar10(FLAGS.data_dir)
 
+    # Initialize model
+    n_input = np.prod(cifar10['train'].images.shape[1:])
+    n_classes = cifar10['train'].labels.shape[1]
+    
+    mlp = MLP(n_input, dnn_hidden_units, n_classes)
+
+    for e in range(5):
+
+        x, y = cifar10['train'].next_batch(FLAGS.batch_size)
+        x_flat = x.reshape(x.shape[0],-1)
+        y_hat = mlp.forward(x_flat)
+        
+        crossEntropy = CrossEntropyModule()
+        loss = crossEntropy.forward(y_hat, y)
+        grad = crossEntropy.backward(y_hat, y)
+
+        mlp.backward(grad)
+        mlp.update_params(FLAGS.learning_rate)
+
+        print( loss)
 
 def print_flags():
     """
@@ -95,6 +116,10 @@ def main():
 
     if not os.path.exists(FLAGS.data_dir):
         os.makedirs(FLAGS.data_dir)
+
+    
+    
+
 
     # Run the training operation
     train()

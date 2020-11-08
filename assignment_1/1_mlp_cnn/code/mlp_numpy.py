@@ -59,7 +59,7 @@ class MLP(object):
         """
         
         for module in self.modules:
-            x = module(x)
+            x = module.forward(x)
         
         return x
     
@@ -78,3 +78,25 @@ class MLP(object):
             dout = module.backward(dout)
         
         return dout
+
+    def update_params(self, learn_rate):
+        """
+        Performs an update step in all layers that have weights or biasses.
+
+        Args:
+          learn_rate: The learning rate used for the update step
+        """
+        # print('\n@@@@@@@@@@@@@@\n')
+        # print("in update")
+        for module in self.modules:
+            # Apply gradient step only if module as params AND gradients
+            if hasattr(module, 'params') and hasattr(module, 'grads'):
+                # Update step for weights
+                if 'weight' in module.params.keys() and 'weight' in module.grads.keys():
+                    module.params['weight'] -= learn_rate * module.grads['weight']
+
+                # Update step for biasses
+                if 'bias' in module.params.keys() and 'bias' in module.grads.keys():
+                    module.params['bias'] -= learn_rate * module.grads['bias']
+
+        # print('\n@@@@@@@@@@@@@@\n')
