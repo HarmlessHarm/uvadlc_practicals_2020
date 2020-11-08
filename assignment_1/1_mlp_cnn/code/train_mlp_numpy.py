@@ -84,7 +84,9 @@ def train():
     
     mlp = MLP(n_input, dnn_hidden_units, n_classes)
 
-    for e in range(5):
+    for e in range(FLAGS.max_steps):
+
+        # print("\nEPOCH", e)
 
         x, y = cifar10['train'].next_batch(FLAGS.batch_size)
         x_flat = x.reshape(x.shape[0],-1)
@@ -97,7 +99,10 @@ def train():
         mlp.backward(grad)
         mlp.update_params(FLAGS.learning_rate)
 
-        print( loss)
+        # if e % FLAGS.eval_freq == 0:
+        if e % 1 == 0:
+            print(f"Train loss at {str(e).zfill(4)}: {loss}")
+
 
 def print_flags():
     """
