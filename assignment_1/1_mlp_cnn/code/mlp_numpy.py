@@ -38,11 +38,16 @@ class MLP(object):
         layers = [n_inputs] + n_hidden + [n_classes]
         
         # Iterate through each layers in- and output nodes
-        for n_in, n_out in zip(layers, layers[1:]):
+        for i, (n_in, n_out) in enumerate(zip(layers, layers[1:])):
             self.modules.append(LinearModule(n_in, n_out))
-            self.modules.append(ELUModule())
-            
-        self.modules.append(SoftMaxModule())
+            # use ELU only between input and hidden layers
+            if i < len(layers) - 2:
+                # self.modules.append(ReLUModule())
+                self.modules.append(ELUModule())
+            # use SoftMax as last module
+            else:
+                self.modules.append(SoftMaxModule())
+
     
     def forward(self, x):
         """
@@ -88,15 +93,20 @@ class MLP(object):
         """
         # print('\n@@@@@@@@@@@@@@\n')
         # print("in update")
+
         for module in self.modules:
             # Apply gradient step only if module as params AND gradients
             if hasattr(module, 'params') and hasattr(module, 'grads'):
                 # Update step for weights
                 if 'weight' in module.params.keys() and 'weight' in module.grads.keys():
+                    # print("Max grad weight", np.max(module.grads['weight']))
+                    # print("Min grad weight", np.min(module.grads['weight']))
                     module.params['weight'] -= learn_rate * module.grads['weight']
 
                 # Update step for biasses
                 if 'bias' in module.params.keys() and 'bias' in module.grads.keys():
+                    # print("Max grad bias", np.max(module.grads['bias']))
+                    # print("Min grad bias", np.min(module.grads['bias']))
                     module.params['bias'] -= learn_rate * module.grads['bias']
 
         # print('\n@@@@@@@@@@@@@@\n')
