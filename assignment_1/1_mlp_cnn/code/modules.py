@@ -61,11 +61,6 @@ class LinearModule(object):
         self.grads['weight'] = self.x.T @ dout
         self.grads['bias'] = np.ones((1, dout.shape[0])) @ dout
 
-        # print('\nIN BACKWARD\n')
-        # print(self.params['bias'].shape)
-        # print(self.grads['bias'].shape)
-        # print('\nEND BACKWARD\n')
-
         return dx
 
 
@@ -85,7 +80,7 @@ class SoftMaxModule(object):
         """
         # Subtracting max of X from X to reduce the size of the exponents.
         x_max = np.max(x, axis=1, keepdims=True)
-        out = np.exp(x-x_max) / (np.sum(np.exp(x- x_max), axis=1, keepdims=True))
+        out = np.exp(x - x_max) / (np.sum(np.exp(x - x_max), axis=1, keepdims=True))
         return out
 
     def softmax_grad(self, sigmas):
@@ -108,6 +103,7 @@ class SoftMaxModule(object):
           out: output of the module
     
         Hint: You can store intermediate variables inside the object. They can be used in backward pass computation.
+        To stabilize computation you should use the so-called Max Trick - https://timvieira.github.io/blog/post/2014/02/11/exp-normalize-trick/
         """
         self.x = x
         out = self.softmax(x)
@@ -136,6 +132,7 @@ class SoftMaxModule(object):
 
         # Example with einsum notation
         # Reference: https://themaverickmeerkat.com/2019-10-23-Softmax/
+        
         # t1 = np.einsum('ij,ik->ijk', softmax_mat, softmax_mat)
         # t2 = np.einsum('ij,jk->ijk', softmax_mat, np.eye(n, n))
         # dSm = t2 - t1
@@ -159,7 +156,8 @@ class CrossEntropyModule(object):
           out: cross entropy loss
         """
 
-        out = - np.sum(y * np.log(x))
+        out = np.mean(-np.sum(y * np.log(x), axis=1))
+        # out = -np.log(x[np.arange(x.shape[0]), y.argmax(1)]).mean()
         return out
     
     def backward(self, x, y):
@@ -171,8 +169,8 @@ class CrossEntropyModule(object):
         Returns:
           dx: gradient of the loss with the respect to the input x.
         """
-        dx = - y / x
-        
+        # dx = - y / x
+        dx = -(y / x) / y.shape[0]
         return dx
 
 
@@ -194,7 +192,6 @@ class ELUModule(object):
         """
         self.x = x
         out = np.where( x < 0, np.exp(x) - 1, x)
-        
         return out
     
     def backward(self, dout):
@@ -206,5 +203,38 @@ class ELUModule(object):
           dx: gradients with respect to the input of the module
         """
         dx = dout * np.where( self.x < 0, np.exp(self.x), 1)
+
+        return dx
+
+
+class ReLUModule(object):
+    """
+    ReLU activation module.
+    """
+    
+    def forward(self, x):
+        """
+        Forward pass.
+
+        Args:
+          x: input to the module
+        Returns:
+          out: output of the module
+
+        Hint: You can store intermediate variables inside the object. They can be used in backward pass computation.
+        """
+        self.x = x
+        out = np.where( x < 0, 0, x)
+        return out
+    
+    def backward(self, dout):
+        """
+        Backward pass.
+        Args:
+          dout: gradients of the previous module
+        Returns:
+          dx: gradients with respect to the input of the module
+        """
+        dx = dout * np.where( self.x < 0, 0, 1)
 
         return dx

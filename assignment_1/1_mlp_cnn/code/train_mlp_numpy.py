@@ -43,15 +43,10 @@ def accuracy(predictions, targets):
     TODO:
     Implement accuracy computation.
     """
-
-    ########################
-    # PUT YOUR CODE HERE  #
-    #######################
-    raise NotImplementedError
-    ########################
-    # END OF YOUR CODE    #
-    #######################
-
+    pred_val = np.argmax(predictions, axis=1)
+    targ_val = np.argmax(targets, axis=1)
+    right = len(np.where(targ_val == pred_val)[0])
+    accuracy = right / len(pred_val)
     return accuracy
 
 
@@ -83,8 +78,15 @@ def train():
     n_classes = cifar10['train'].labels.shape[1]
     
     mlp = MLP(n_input, dnn_hidden_units, n_classes)
+    print(mlp)
 
-    for e in range(5):
+    # Load test data one time to reduce loading time in future
+    x_test, y_test = cifar10['test'].images, cifar10['test'].labels
+    x_test_flat = x_test.reshape(x_test.shape[0], -1)
+
+    for e in range(FLAGS.max_steps):
+
+        # print("\nEPOCH", e)
 
         x, y = cifar10['train'].next_batch(FLAGS.batch_size)
         x_flat = x.reshape(x.shape[0],-1)
@@ -97,7 +99,12 @@ def train():
         mlp.backward(grad)
         mlp.update_params(FLAGS.learning_rate)
 
-        print( loss)
+        if e % FLAGS.eval_freq == 0:
+            
+            y_test_hat = mlp.forward(x_test_flat)
+            acc = accuracy(y_test_hat, y_test)
+            print(f"Train loss at {str(e).zfill(4)}: {round(loss, 4)}, Test accuracy is: {round(acc, 4)}")
+
 
 def print_flags():
     """

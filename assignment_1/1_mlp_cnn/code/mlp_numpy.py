@@ -38,12 +38,20 @@ class MLP(object):
         layers = [n_inputs] + n_hidden + [n_classes]
         
         # Iterate through each layers in- and output nodes
-        for n_in, n_out in zip(layers, layers[1:]):
+        for i, (n_in, n_out) in enumerate(zip(layers, layers[1:])):
             self.modules.append(LinearModule(n_in, n_out))
-            self.modules.append(ELUModule())
-            
-        self.modules.append(SoftMaxModule())
-    
+            # use ELU only between input and hidden layers
+            if i < len(layers) - 2:
+                # self.modules.append(ReLUModule())
+                self.modules.append(ELUModule())
+            # use SoftMax as last module
+            else:
+                self.modules.append(SoftMaxModule())
+
+    def __str__(self):
+        mod_str = [str(type(m)) for m in self.modules]
+        return " ".join(mod_str)
+
     def forward(self, x):
         """
         Performs forward pass of the input. Here an input tensor x is transformed through
@@ -86,8 +94,6 @@ class MLP(object):
         Args:
           learn_rate: The learning rate used for the update step
         """
-        # print('\n@@@@@@@@@@@@@@\n')
-        # print("in update")
         for module in self.modules:
             # Apply gradient step only if module as params AND gradients
             if hasattr(module, 'params') and hasattr(module, 'grads'):
@@ -98,5 +104,3 @@ class MLP(object):
                 # Update step for biasses
                 if 'bias' in module.params.keys() and 'bias' in module.grads.keys():
                     module.params['bias'] -= learn_rate * module.grads['bias']
-
-        # print('\n@@@@@@@@@@@@@@\n')

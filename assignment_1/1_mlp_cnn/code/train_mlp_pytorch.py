@@ -80,14 +80,15 @@ def train():
         dnn_hidden_units = []
     
     
-    ########################
-    # PUT YOUR CODE HERE  #
-    #######################
-    raise NotImplementedError
-    ########################
-    # END OF YOUR CODE    #
-    #######################
+    # Load data
+    cifar10 = cifar10_utils.get_cifar10(FLAGS.data_dir)
 
+    # Initialize model
+    n_input = np.prod(cifar10['train'].images.shape[1:])
+    n_classes = cifar10['train'].labels.shape[1]
+    
+    mlp = MLP(n_input, dnn_hidden_units, n_classes)
+    print(mlp)
 
 def print_flags():
     """

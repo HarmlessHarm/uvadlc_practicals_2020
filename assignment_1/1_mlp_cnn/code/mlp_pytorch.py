@@ -34,13 +34,21 @@ class MLP(nn.Module):
         Implement initialization of the network.
         """
         
-        ########################
-        # PUT YOUR CODE HERE  #
-        #######################
-        raise NotImplementedError
-        ########################
-        # END OF YOUR CODE    #
-        #######################
+        module_list = []
+        layers = [n_inputs] + n_hidden
+        
+        # Iterate through each layers in- and output nodes
+        for i, (n_in, n_out) in enumerate(zip(layers, layers[1:])):
+            module_list.append(nn.Linear(n_in, n_out))
+            # use ELU only between input and hidden layers
+            if i < len(layers) - 1:
+                # module_list.append(ReLUModule())
+                module_list.append(ELU())
+        
+        # use SoftMax as last module
+        module_list.append(LogSoftMax())
+
+        self.modules = nn.Sequential(*module_list)
     
     def forward(self, x):
         """
@@ -56,12 +64,6 @@ class MLP(nn.Module):
         Implement forward pass of the network.
         """
         
-        ########################
-        # PUT YOUR CODE HERE  #
-        #######################
-        raise NotImplementedError
-        ########################
-        # END OF YOUR CODE    #
-        #######################
+        out = self.modules(x)
         
         return out
