@@ -59,13 +59,7 @@ class LinearModule(object):
         dx = dout @ self.params['weight'].T
         
         self.grads['weight'] = self.x.T @ dout
-        batch_size = dout.shape[0]
-        self.grads['bias'] = np.ones((1, batch_size)) @ dout
-
-        # print('\nIN BACKWARD\n')
-        # print(self.params['bias'].shape)
-        # print(self.grads['bias'].shape)
-        # print('\nEND BACKWARD\n')
+        self.grads['bias'] = np.ones((1, dout.shape[0])) @ dout
 
         return dx
 
@@ -86,7 +80,7 @@ class SoftMaxModule(object):
         """
         # Subtracting max of X from X to reduce the size of the exponents.
         x_max = np.max(x, axis=1, keepdims=True)
-        out = np.exp(x-x_max) / (np.sum(np.exp(x- x_max), axis=1, keepdims=True))
+        out = np.exp(x - x_max) / (np.sum(np.exp(x - x_max), axis=1, keepdims=True))
         return out
 
     def softmax_grad(self, sigmas):
@@ -129,20 +123,20 @@ class SoftMaxModule(object):
         m, n = self.x.shape
         softmax_mat = self.softmax(self.x)
         
-        # dx = np.zeros((m, n))
-        # for i, sample in enumerate(softmax_mat):
-        #     # soft = self.softmax(sample)
-        #     soft_grad = self.softmax_grad(sample)
-        #     dx[i] = dout[i] @ soft_grad
+        dx = np.zeros((m, n))
+        for i, sample in enumerate(softmax_mat):
+            # soft = self.softmax(sample)
+            soft_grad = self.softmax_grad(sample)
+            dx[i] = dout[i] @ soft_grad
         
 
         # Example with einsum notation
         # Reference: https://themaverickmeerkat.com/2019-10-23-Softmax/
         
-        t1 = np.einsum('ij,ik->ijk', softmax_mat, softmax_mat)
-        t2 = np.einsum('ij,jk->ijk', softmax_mat, np.eye(n, n))
-        dSm = t2 - t1
-        dx = np.einsum('ijk,ik->ij', dSm, dout)
+        # t1 = np.einsum('ij,ik->ijk', softmax_mat, softmax_mat)
+        # t2 = np.einsum('ij,jk->ijk', softmax_mat, np.eye(n, n))
+        # dSm = t2 - t1
+        # dx = np.einsum('ijk,ik->ij', dSm, dout)
 
         return dx
 
@@ -197,10 +191,6 @@ class ELUModule(object):
         Hint: You can store intermediate variables inside the object. They can be used in backward pass computation.
         """
         self.x = x
-        # print('IN ELU')
-        # print(x.shape)
-        # print("max",np.max(x))
-        # print("min",np.min(x))
         out = np.where( x < 0, np.exp(x) - 1, x)
         return out
     
@@ -234,8 +224,6 @@ class ReLUModule(object):
         Hint: You can store intermediate variables inside the object. They can be used in backward pass computation.
         """
         self.x = x
-        # print('IN ELU')
-        # print(x.shape)
         out = np.where( x < 0, 0, x)
         return out
     

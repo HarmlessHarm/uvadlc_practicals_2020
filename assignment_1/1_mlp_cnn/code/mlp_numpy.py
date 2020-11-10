@@ -48,7 +48,10 @@ class MLP(object):
             else:
                 self.modules.append(SoftMaxModule())
 
-    
+    def __str__(self):
+        mod_str = [str(type(m)) for m in self.modules]
+        return " ".join(mod_str)
+
     def forward(self, x):
         """
         Performs forward pass of the input. Here an input tensor x is transformed through
@@ -91,22 +94,13 @@ class MLP(object):
         Args:
           learn_rate: The learning rate used for the update step
         """
-        # print('\n@@@@@@@@@@@@@@\n')
-        # print("in update")
-
         for module in self.modules:
             # Apply gradient step only if module as params AND gradients
             if hasattr(module, 'params') and hasattr(module, 'grads'):
                 # Update step for weights
                 if 'weight' in module.params.keys() and 'weight' in module.grads.keys():
-                    # print("Max grad weight", np.max(module.grads['weight']))
-                    # print("Min grad weight", np.min(module.grads['weight']))
                     module.params['weight'] -= learn_rate * module.grads['weight']
 
                 # Update step for biasses
                 if 'bias' in module.params.keys() and 'bias' in module.grads.keys():
-                    # print("Max grad bias", np.max(module.grads['bias']))
-                    # print("Min grad bias", np.min(module.grads['bias']))
                     module.params['bias'] -= learn_rate * module.grads['bias']
-
-        # print('\n@@@@@@@@@@@@@@\n')
