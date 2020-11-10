@@ -47,14 +47,10 @@ def accuracy(predictions, targets):
     Implement accuracy computation.
     """
     
-    ########################
-    # PUT YOUR CODE HERE  #
-    #######################
-    raise NotImplementedError
-    ########################
-    # END OF YOUR CODE    #
-    #######################
-    
+    pred_val = torch.argmax(predictions, axis=1)
+    targ_val = torch.argmax(targets, axis=1)
+    right = len(torch.where(targ_val == pred_val)[0])
+    accuracy = right / len(pred_val)
     return accuracy
 
 
@@ -89,6 +85,33 @@ def train():
     
     mlp = MLP(n_input, dnn_hidden_units, n_classes)
     print(mlp)
+
+    criterion = torch.nn.NLLLoss()
+    optimizer = torch.optim.Adam(mlp.parameters(), lr=FLAGS.learning_rate)
+
+    x_test, y_test = cifar10['test'].images, cifar10['test'].labels
+    x_test, y_test = torch.tensor(x_test), torch.tensor(y_test)
+
+    x_test_flat = x_test.reshape(x_test.shape[0], -1)
+
+    for e in range(FLAGS.max_steps):
+        x, y = cifar10['train'].next_batch(FLAGS.batch_size)
+        x, y = torch.tensor(x), torch.tensor(y)
+
+        x_flat = x.reshape(x.shape[0],-1)
+        y_hat = mlp(x_flat)
+
+        loss = criterion(y_hat, torch.argmax(y, axis=1))
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        if e % FLAGS.eval_freq == 0:
+            
+            y_test_hat = mlp(x_test_flat)
+            acc = accuracy(y_test_hat, y_test)
+            print(f"Train loss at {str(e).zfill(4)}: {round(loss.item(), 4)}, Test accuracy is: {round(acc, 4)}")
 
 def print_flags():
     """

@@ -33,23 +33,26 @@ class MLP(nn.Module):
         TODO:
         Implement initialization of the network.
         """
-        
+        super(MLP, self).__init__()
+
         module_list = []
-        layers = [n_inputs] + n_hidden
+        layers = [n_inputs] + n_hidden + [n_classes]
         
         # Iterate through each layers in- and output nodes
+        print(list(zip(layers, layers[1:])))
         for i, (n_in, n_out) in enumerate(zip(layers, layers[1:])):
-            module_list.append(nn.Linear(n_in, n_out))
+            lin = nn.Linear(n_in, n_out)
+            module_list.append(lin)
             # use ELU only between input and hidden layers
-            if i < len(layers) - 1:
+            if i < len(layers) - 2:
                 # module_list.append(ReLUModule())
-                module_list.append(ELU())
-        
-        # use SoftMax as last module
-        module_list.append(LogSoftMax())
+                module_list.append(nn.ELU())
+            else:
+                # use SoftMax as last module
+                module_list.append(nn.LogSoftmax())
 
-        self.modules = nn.Sequential(*module_list)
-    
+        self.network = nn.Sequential(*module_list)
+
     def forward(self, x):
         """
         Performs forward pass of the input. Here an input tensor x is transformed through
@@ -64,6 +67,7 @@ class MLP(nn.Module):
         Implement forward pass of the network.
         """
         
-        out = self.modules(x)
+        # print(self.modules)
+        out = self.network(x)
         
         return out
