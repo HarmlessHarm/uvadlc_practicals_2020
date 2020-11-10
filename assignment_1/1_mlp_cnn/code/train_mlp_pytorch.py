@@ -79,7 +79,6 @@ def train():
     else:
         dnn_hidden_units = []
     
-    neg_slope = FLAGS.neg_slope
     
     ########################
     # PUT YOUR CODE HERE  #
