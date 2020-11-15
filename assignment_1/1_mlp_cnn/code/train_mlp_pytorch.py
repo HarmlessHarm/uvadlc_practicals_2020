@@ -88,7 +88,7 @@ def train(n_input, dnn_hidden_units, n_classes, cifar10):
     else:
         optimizer = torch.optim.SGD(mlp.parameters(), lr=FLAGS.learning_rate)
 
-    stats = Statistics()
+    stats = Statistics(FLAGS.eval_freq)
 
     x_test, y_test = cifar10['test'].images, cifar10['test'].labels
     x_test, y_test = torch.tensor(x_test).to(device), torch.tensor(y_test).to(device)
@@ -131,8 +131,8 @@ def train(n_input, dnn_hidden_units, n_classes, cifar10):
             ]
             print(", ".join(print_list))
 
-    stats.plot_statistics()
     store_model(mlp, stats)
+    stats.plot_statistics()
 
 def print_flags():
     """
@@ -197,7 +197,7 @@ def main():
         mlp, stats = load_model(MLP, n_input, dnn_hidden_units, n_classes)
         print("LOADED MODEL")
         print(mlp)
-        print(stats.test_accuracy_data[-1])
+        stats.plot_statistics()
     
     else:
         print("TRAIN MODEL")
