@@ -33,13 +33,28 @@ class ConvNet(nn.Module):
 
         self.net_modules = (
             nn.Conv2d(n_channels, 64, kernel_size=3, padding=1), # Conv0
-            SimplePreActBlock(nn.ReLU(), 64, double=False, downsample=False), # PreAct1
-            SimplePreActBlock(nn.ReLU(), 64, 128),  # conv1, maxpool1, PreAct2_a, PreAct2_b
-            SimplePreActBlock(nn.ReLU(), 128, 256), # conv2, maxpool2, PreAct3_a, PreAct3_b
-            SimplePreActBlock(nn.ReLU(), 256, 512), # conv3, maxpool3, PreAct4_a, PreAct4_b
+            SimplePreActBlock(nn.ReLU(), 64),   # PreAct1
+
+            DownsampleBlock(64, 128),           # conv1, maxpool1
+            SimplePreActBlock(nn.ReLU(), 128),  # PreAct2_a
+            SimplePreActBlock(nn.ReLU(), 128),  # PreAct2_b
+
+            DownsampleBlock(128, 256),          # conv2, maxpool2,
+            SimplePreActBlock(nn.ReLU(), 256),  # PreAct3_a
+            SimplePreActBlock(nn.ReLU(), 256),  # PreAct3_b
+
+            DownsampleBlock(256, 512),          # conv3, maxpool3
+            SimplePreActBlock(nn.ReLU(), 512),  # PreAct4_a
+            SimplePreActBlock(nn.ReLU(), 512),  # PreAct4_b
+
             nn.MaxPool2d(kernel_size=3, stride=2, padding=1), # maxpool4
-            SimplePreActBlock(nn.ReLU(), 512, downsample=False), # PreAct5_a PreAct5_b
+            SimplePreActBlock(nn.ReLU(), 512),  # PreAct5_a PreAct5_b
+            SimplePreActBlock(nn.ReLU(), 512),  # PreAct5_a PreAct5_b
             nn.MaxPool2d(kernel_size=3, stride=2, padding=1), # maxpool5
+
+            nn.BatchNorm2d(512),
+            nn.ReLU(),
+
             View([512]), # Reshape output of conv to batch_size x 512
             nn.Linear(in_features=512, out_features=n_classes), # linear
         )
@@ -76,35 +91,47 @@ class ConvNet(nn.Module):
 
         return out
 
+class DownsampleBlock(nn.Module):
+
+    def __init__(self, c_in, c_out):
+        super(DownsampleBlock, self).__init__()
+
+        self.net = nn.Sequential(
+            nn.Conv2d(c_in, c_out, kernel_size=1, stride=1, padding=0),
+            nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+        )
+
+    def forward(self, x):
+        return self.net(x)
 
 class SimplePreActBlock(nn.Module):
 
-    def __init__(self, act_fn, c_in, c_out=None, double=True, downsample=True):
+    def __init__(self, act_fn, c_in, double=False):
         super(SimplePreActBlock, self).__init__()
 
         
-        if not downsample:
-            c_out = c_in
+        # if not downsample:
+        #     c_out = c_in
 
-        self.downsample = nn.Sequential(
-            nn.Conv2d(c_in, c_out, kernel_size=1, stride=1, padding=0),
-            nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
-        ) if downsample else None
+        # self.downsample = nn.Sequential(
+        #     nn.Conv2d(c_in, c_out, kernel_size=1, stride=1, padding=0),
+        #     nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+        # ) if downsample else None
 
         modules = (
-            nn.BatchNorm2d(c_out),
+            nn.BatchNorm2d(c_in),
             nn.ReLU(),
-            nn.Conv2d(c_out, c_out, kernel_size=3, stride=1, padding=1)
+            nn.Conv2d(c_in, c_in, kernel_size=3, stride=1, padding=1)
         )
 
         if double:
             modules = (
-                nn.BatchNorm2d(c_out),
+                nn.BatchNorm2d(c_in),
                 nn.ReLU(),
-                nn.Conv2d(c_out, c_out, kernel_size=3, stride=1, padding=1),
-                nn.BatchNorm2d(c_out),
+                nn.Conv2d(c_in, c_in, kernel_size=3, stride=1, padding=1),
+                nn.BatchNorm2d(c_in),
                 nn.ReLU(),
-                nn.Conv2d(c_out, c_out, kernel_size=3, stride=1, padding=1)
+                nn.Conv2d(c_in, c_in, kernel_size=3, stride=1, padding=1)
             )
 
         self.net = nn.Sequential(*modules)
@@ -112,8 +139,8 @@ class SimplePreActBlock(nn.Module):
     def forward(self, x):
 
         # First downsample x,y dims and upscale channel dim
-        if self.downsample != None:
-            x = self.downsample(x)
+        # if self.downsample != None:
+        #     x = self.downsample(x)
 
         # Then apply PreAct module
         z = self.net(x)

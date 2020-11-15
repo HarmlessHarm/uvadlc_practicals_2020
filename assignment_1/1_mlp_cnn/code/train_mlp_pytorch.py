@@ -24,7 +24,7 @@ LEARNING_RATE_DEFAULT = 1e-3
 MAX_STEPS_DEFAULT = 1400
 BATCH_SIZE_DEFAULT = 200
 EVAL_FREQ_DEFAULT = 100
-OPTIMIZER = "SGD"
+OPTIMIZER = "sgd"
 
 
 # Directory in which cifar data is saved
@@ -83,7 +83,7 @@ def train(n_input, dnn_hidden_units, n_classes, cifar10):
     print(mlp)
 
     criterion = torch.nn.NLLLoss()
-    if FLAGS.optim == 'Adam':
+    if FLAGS.optim == 'adam':
         optimizer = torch.optim.Adam(mlp.parameters(), lr=FLAGS.learning_rate)
     else:
         optimizer = torch.optim.SGD(mlp.parameters(), lr=FLAGS.learning_rate)
@@ -112,10 +112,10 @@ def train(n_input, dnn_hidden_units, n_classes, cifar10):
         train_loss.backward()
         optimizer.step()
 
-        if e % FLAGS.eval_freq == 0:
+        if (e+1) % FLAGS.eval_freq == 0 or e == 0:
+            print(f"Running Test at epoch: {e}")
             
             y_test_hat = mlp(x_test_flat)
-
             with torch.no_grad():
                 test_loss = criterion(y_test_hat, torch.argmax(y_test, axis=1))
             test_acc = accuracy(y_test_hat, y_test)
@@ -124,15 +124,16 @@ def train(n_input, dnn_hidden_units, n_classes, cifar10):
             stats.add_test_accuracy(test_acc)
 
             print_list = [
-                f"Train loss at {str(e).zfill(4)}: {round(train_loss.item(), 4)}",
-                f"Train accuracy is: {round(train_acc, 4)}",
-                f"Test loss at {str(e).zfill(4)}: {round(test_loss.item(), 4)}",
-                f"Test accuracy is: {round(test_acc, 4)}"
+                f"Train loss : {round(train_loss.item(), 4)}",
+                f"Train acc  : {round(train_acc, 4)}",
+                f"Test  loss : {round(test_loss.item(), 4)}",
+                f"Test  acc  : {round(test_acc, 4)}"
             ]
-            print(", ".join(print_list))
+            print("\n".join(print_list))
+            print()
 
     store_model(mlp, stats)
-    stats.plot_statistics()
+    stats.plot_statistics(title="PyTorch Multi Layer Perceptron", hline=0.48)
 
 def print_flags():
     """
@@ -173,7 +174,10 @@ def main():
     # Print all Flags to confirm parameter settings
     print_flags()
 
-    print("Device", device)    
+    if not os.path.exists(FLAGS.data_dir):
+        os.makedirs(FLAGS.data_dir)
+    if not os.path.exists(FLAGS.model_dir):
+        os.makedirs(FLAGS.model_dir)
 
     if FLAGS.dnn_hidden_units:
         dnn_hidden_units = FLAGS.dnn_hidden_units.split(",")
@@ -197,7 +201,7 @@ def main():
         mlp, stats = load_model(MLP, n_input, dnn_hidden_units, n_classes)
         print("LOADED MODEL")
         print(mlp)
-        stats.plot_statistics()
+        stats.plot_statistics(title="PyTorch Multi Layer Perceptron", hline=0.48)
     
     else:
         print("TRAIN MODEL")
@@ -230,13 +234,16 @@ if __name__ == '__main__':
     parser.add_argument('--data_dir', type=str, default=DATA_DIR_DEFAULT,
                         help='Directory for storing input data')
     parser.add_argument('--optim', type=str, default=OPTIMIZER,
-                        help='Optimizer to use [SGD, Adam]'),
+                        help='Optimizer to use [(default)sgd, adam]'),
     parser.add_argument('--model_dir', type=str, default=MODEL_DIR_DEFAULT,
                         help='Directory for storing model'),
     parser.add_argument('--model_name', type=str, default=MODEL_NAME_DEFAULT,
                         help='File name for storing model'),
     parser.add_argument('--load_model', type=str2bool, nargs='?', const=True ,default=False,
-                        help='File name for storing model')
+                        help='Wether or not to load a pre-saved model'),
+    parser.add_argument('--pretrained', type=str2bool, nargs='?', const=True ,default=False,
+                        help='Wether or not to load a pre-trained model (VGG)'),
+    
     FLAGS, unparsed = parser.parse_known_args()
     
     main()
