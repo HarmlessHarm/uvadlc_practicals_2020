@@ -6,6 +6,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import torch
 import torch.nn as nn
 
 
@@ -52,6 +53,12 @@ class MLP(nn.Module):
                 module_list.append(nn.LogSoftmax())
 
         self.network = nn.Sequential(*module_list)
+        self.network.apply(self.init_lin_weights)
+
+    def init_lin_weights(self, model):
+        if type(model) == nn.Linear:
+            torch.nn.init.normal_(model.weight, 0, 0.0001)
+            model.bias.data.fill_(0)
 
     def forward(self, x):
         """
