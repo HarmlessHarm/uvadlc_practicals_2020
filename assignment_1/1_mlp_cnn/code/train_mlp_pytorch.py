@@ -9,6 +9,9 @@ from __future__ import print_function
 import argparse
 import numpy as np
 import os
+import pickle
+
+from Statistics import Statistics
 from mlp_pytorch import MLP
 import cifar10_utils
 
@@ -21,13 +24,18 @@ LEARNING_RATE_DEFAULT = 1e-3
 MAX_STEPS_DEFAULT = 1400
 BATCH_SIZE_DEFAULT = 200
 EVAL_FREQ_DEFAULT = 100
+OPTIMIZER = "SGD"
 
 
 # Directory in which cifar data is saved
 DATA_DIR_DEFAULT = './cifar10/cifar-10-batches-py'
+MODEL_DIR_DEFAULT = './models/'
+MODEL_NAME_DEFAULT = 'mlp_pytorch'
+
 
 FLAGS = None
 
+device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 def accuracy(predictions, targets):
     """
@@ -54,7 +62,7 @@ def accuracy(predictions, targets):
     return accuracy
 
 
-def train():
+def train(n_input, dnn_hidden_units, n_classes, cifar10):
     """
     Performs training and evaluation of MLP model.
   
@@ -69,6 +77,104 @@ def train():
 
     ## Prepare all functions
     # Get number of units in each hidden layer specified in the string such as 100,100
+    
+    
+    mlp = MLP(n_input, dnn_hidden_units, n_classes).to(device)
+    print(mlp)
+
+    criterion = torch.nn.NLLLoss()
+    if FLAGS.optim == 'Adam':
+        optimizer = torch.optim.Adam(mlp.parameters(), lr=FLAGS.learning_rate)
+    else:
+        optimizer = torch.optim.SGD(mlp.parameters(), lr=FLAGS.learning_rate)
+
+    stats = Statistics()
+
+    x_test, y_test = cifar10['test'].images, cifar10['test'].labels
+    x_test, y_test = torch.tensor(x_test).to(device), torch.tensor(y_test).to(device)
+
+    x_test_flat = x_test.reshape(x_test.shape[0], -1)
+
+    for e in range(FLAGS.max_steps):
+        x, y = cifar10['train'].next_batch(FLAGS.batch_size)
+        x, y = torch.tensor(x).to(device), torch.tensor(y).to(device)
+
+        x_flat = x.reshape(x.shape[0],-1)
+        y_hat = mlp(x_flat)
+
+        train_loss = criterion(y_hat, torch.argmax(y, axis=1))
+        train_acc = accuracy(y_hat, y)
+
+        stats.add_train_loss(train_loss.item())
+        stats.add_train_accuracy(train_acc)
+
+        optimizer.zero_grad()
+        train_loss.backward()
+        optimizer.step()
+
+        if e % FLAGS.eval_freq == 0:
+            
+            y_test_hat = mlp(x_test_flat)
+
+            with torch.no_grad():
+                test_loss = criterion(y_test_hat, torch.argmax(y_test, axis=1))
+            test_acc = accuracy(y_test_hat, y_test)
+
+            stats.add_test_loss(test_loss.item())
+            stats.add_test_accuracy(test_acc)
+
+            print_list = [
+                f"Train loss at {str(e).zfill(4)}: {round(train_loss.item(), 4)}",
+                f"Train accuracy is: {round(train_acc, 4)}",
+                f"Test loss at {str(e).zfill(4)}: {round(test_loss.item(), 4)}",
+                f"Test accuracy is: {round(test_acc, 4)}"
+            ]
+            print(", ".join(print_list))
+
+    stats.plot_statistics()
+    store_model(mlp, stats)
+
+def print_flags():
+    """
+    Prints all entries in FLAGS variable.
+    """
+    for key, value in vars(FLAGS).items():
+        print(key + ' : ' + str(value))
+
+
+def make_model_name():
+    return FLAGS.model_dir + FLAGS.model_name
+
+def store_model(model, stats):
+    # with open(FLAGS.model_dir, 'w') as f:
+    torch.save(model.state_dict(), make_model_name() + '.model')
+    
+    with open(make_model_name() + '.stats', 'wb') as sf:
+        pickle.dump(stats, sf)
+
+
+    print(f"Model stored in {FLAGS.model_dir}")
+
+
+def load_model(model_class, *args):
+    model = model_class(*args)
+    model.load_state_dict(torch.load(make_model_name() + '.model'))
+    model.eval()
+
+    with open(make_model_name() + '.stats', 'rb') as sf:
+        stats = pickle.load(sf)
+    
+    return model, stats
+
+def main():
+    """
+    Main function
+    """
+    # Print all Flags to confirm parameter settings
+    print_flags()
+
+    print("Device", device)    
+
     if FLAGS.dnn_hidden_units:
         dnn_hidden_units = FLAGS.dnn_hidden_units.split(",")
         dnn_hidden_units = [int(dnn_hidden_unit_) for dnn_hidden_unit_ in dnn_hidden_units]
@@ -83,57 +189,30 @@ def train():
     n_input = np.prod(cifar10['train'].images.shape[1:])
     n_classes = cifar10['train'].labels.shape[1]
     
-    mlp = MLP(n_input, dnn_hidden_units, n_classes)
-    print(mlp)
-
-    criterion = torch.nn.NLLLoss()
-    optimizer = torch.optim.Adam(mlp.parameters(), lr=FLAGS.learning_rate)
-
-    x_test, y_test = cifar10['test'].images, cifar10['test'].labels
-    x_test, y_test = torch.tensor(x_test), torch.tensor(y_test)
-
-    x_test_flat = x_test.reshape(x_test.shape[0], -1)
-
-    for e in range(FLAGS.max_steps):
-        x, y = cifar10['train'].next_batch(FLAGS.batch_size)
-        x, y = torch.tensor(x), torch.tensor(y)
-
-        x_flat = x.reshape(x.shape[0],-1)
-        y_hat = mlp(x_flat)
-
-        loss = criterion(y_hat, torch.argmax(y, axis=1))
-
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-
-        if e % FLAGS.eval_freq == 0:
-            
-            y_test_hat = mlp(x_test_flat)
-            acc = accuracy(y_test_hat, y_test)
-            print(f"Train loss at {str(e).zfill(4)}: {round(loss.item(), 4)}, Test accuracy is: {round(acc, 4)}")
-
-def print_flags():
-    """
-    Prints all entries in FLAGS variable.
-    """
-    for key, value in vars(FLAGS).items():
-        print(key + ' : ' + str(value))
-
-
-def main():
-    """
-    Main function
-    """
-    # Print all Flags to confirm parameter settings
-    print_flags()
-    
     if not os.path.exists(FLAGS.data_dir):
         os.makedirs(FLAGS.data_dir)
     
-    # Run the training operation
-    train()
+    if (FLAGS.load_model):
+        print("LOAD MODEL")
+        mlp, stats = load_model(MLP, n_input, dnn_hidden_units, n_classes)
+        print("LOADED MODEL")
+        print(mlp)
+        print(stats.test_accuracy_data[-1])
+    
+    else:
+        print("TRAIN MODEL")
+        # Run the training operation
+        train(n_input, dnn_hidden_units, n_classes, cifar10)
 
+def str2bool(v):
+    if isinstance(v, bool):
+       return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
 
 if __name__ == '__main__':
     # Command line arguments
@@ -150,6 +229,14 @@ if __name__ == '__main__':
                         help='Frequency of evaluation on the test set')
     parser.add_argument('--data_dir', type=str, default=DATA_DIR_DEFAULT,
                         help='Directory for storing input data')
+    parser.add_argument('--optim', type=str, default=OPTIMIZER,
+                        help='Optimizer to use [SGD, Adam]'),
+    parser.add_argument('--model_dir', type=str, default=MODEL_DIR_DEFAULT,
+                        help='Directory for storing model'),
+    parser.add_argument('--model_name', type=str, default=MODEL_NAME_DEFAULT,
+                        help='File name for storing model'),
+    parser.add_argument('--load_model', type=str2bool, nargs='?', const=True ,default=False,
+                        help='File name for storing model')
     FLAGS, unparsed = parser.parse_known_args()
     
     main()
