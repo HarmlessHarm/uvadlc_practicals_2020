@@ -241,8 +241,6 @@ if __name__ == '__main__':
                         help='File name for storing model'),
     parser.add_argument('--load_model', type=str2bool, nargs='?', const=True ,default=False,
                         help='Wether or not to load a pre-saved model'),
-    parser.add_argument('--pretrained', type=str2bool, nargs='?', const=True ,default=False,
-                        help='Wether or not to load a pre-trained model (VGG)'),
     
     FLAGS, unparsed = parser.parse_known_args()
     

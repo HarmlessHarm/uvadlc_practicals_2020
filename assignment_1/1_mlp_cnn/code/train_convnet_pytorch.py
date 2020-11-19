@@ -18,6 +18,7 @@ import cifar10_utils
 
 import torch
 import torch.nn as nn
+import torchvision.models as models
 
 # Default constants
 LEARNING_RATE_DEFAULT = 1e-4
@@ -78,7 +79,12 @@ def train(n_channels, n_classes, cifar10):
     test_batches = cifar10['test'].labels.shape[0] // FLAGS.batch_size
 
     if FLAGS.pretrained:
-        
+        # Load ResNet18
+        conv_net = models.resnet18(pretrained=True)
+        num_ftrs = conv_net.fc.in_features
+        # Replace classification layer.
+        conv_net.fc = nn.Linear(num_ftrs, n_classes)
+        conv_net = conv_net.to(device)
     else:
         conv_net = ConvNet(n_channels, n_classes).to(device)
     print(conv_net)
@@ -185,6 +191,7 @@ def main():
     """
     # Print all Flags to confirm parameter settings
     print_flags()
+    print("Device:", device)
     
     if not os.path.exists(FLAGS.data_dir):
         os.makedirs(FLAGS.data_dir)
@@ -241,7 +248,10 @@ if __name__ == '__main__':
     parser.add_argument('--model_name', type=str, default=MODEL_NAME_DEFAULT,
                         help='File name for storing model'),
     parser.add_argument('--load_model', type=str2bool, nargs='?', const=True ,default=False,
-                        help='Wether or not to load a pre-saved model')
+                        help='Wether or not to load a pre-saved model'),
+    parser.add_argument('--pretrained', type=str2bool, nargs='?', const=True ,default=False,
+                        help='Wether or not to load a pre-trained model (ResNet18)'),
+    
 
     FLAGS, unparsed = parser.parse_known_args()
     
